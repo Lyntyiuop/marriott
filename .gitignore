@@ -1,0 +1,17 @@
+# 依赖管理
+venv/          # 虚拟环境目录
+__pycache__/   # Python 字节码缓存
+*.pyc          # 编译后的 Python 文件
+
+# 系统与编辑器
+.DS_Store      # macOS 系统文件
+*.log          # 日志文件
+
+# 敏感信息
+.env           # 环境变量文件，通常包含密码、密钥等
+
+# 数据
+data/          # 数据文件夹
+
+# claude
+.claude/       # Claude 相关文件夹
