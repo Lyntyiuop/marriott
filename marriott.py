@@ -241,7 +241,7 @@ if __name__ == "__main__":
     today = date.today()
     checkin = today.isoformat()
     checkout = (today + timedelta(days=1)).isoformat()
-    output_path = "marriott_shanghai_hotels.json"
+    output_path = "data/marriott_shanghai_hotels.json"
 
     print(f"记录时间：{datetime.now().isoformat()}")
     print("正在获取万豪上海各酒店最低价...")
