@@ -6,7 +6,7 @@ import send_email
 
 
 CONDA_ENV = "crawler"
-DESTINATION = "heilongjiang"
+DESTINATION = "shanghai"
 
 
 def main():
