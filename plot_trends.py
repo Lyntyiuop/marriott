@@ -5,11 +5,12 @@ import matplotlib.dates as mdates
 from datetime import datetime
 
 
-DATA_PATH = "data/marriott_shanghai_hotels.json"
 
 
-def main():
+
+def plot_price_trends(destination="shanghai"):
     # 1. 读取数据
+    DATA_PATH = f"data/marriott_{destination}_hotels.json"
     with open(DATA_PATH, "r", encoding="utf-8") as f:
         raw_text = f.read()
 
@@ -152,9 +153,9 @@ def main():
     data_dir = "data"
     os.makedirs(data_dir, exist_ok=True)
 
-    lowest_hits_path = os.path.join(data_dir, "latest_is_lowest.txt")
+    lowest_hits_path = os.path.join(data_dir, f"{destination}_latest_is_lowest.txt")
     with open(lowest_hits_path, "w", encoding="utf-8") as f:
-        f.write(f"最新价即最低价的酒店（{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}）\n")
+        f.write(f"{destination} 处于历史最低价的酒店（{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}）\n")
         f.write("=" * 50 + "\n")
         if lowest_hits:
             for hid, name, price in lowest_hits:
@@ -163,9 +164,9 @@ def main():
             f.write("无\n")
     print(f"\n已保存到 {lowest_hits_path}")
 
-    top5_path = os.path.join(data_dir, "lowest_5_latest.txt")
+    top5_path = os.path.join(data_dir, f"{destination}_lowest_5_latest.txt")
     with open(top5_path, "w", encoding="utf-8") as f:
-        f.write(f"最新价最低的五个酒店（{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}）\n")
+        f.write(f"{destination} 最便宜的五个酒店（{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}）\n")
         f.write("=" * 50 + "\n")
         for hid, (name, date, price, min_p) in top5:
             tag = " ← 历史最低!" if price == min_p else f" (历史最低 ￥{min_p:.0f})"
@@ -176,11 +177,11 @@ def main():
     plt.tight_layout()
     out_dir = os.path.join("data", "charts")
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, "price_trends.png")
+    out_path = os.path.join(out_dir, f"{destination}_price_trends.png")
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"已保存到 {out_path}")
 
 
 if __name__ == "__main__":
-    main()
+    plot_price_trends("shanghai")

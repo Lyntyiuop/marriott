@@ -10,12 +10,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CHART_PATH = 'data/charts/price_trends.png'
-LOWEST_HITS_PATH = 'data/latest_is_lowest.txt'
-TOP5_PATH = 'data/lowest_5_latest.txt'
 
+def send_chart(destination="shanghai"):
+    CHART_PATH = f"data/charts/{destination}_price_trends.png"
+    LOWEST_HITS_PATH = f"data/{destination}_latest_is_lowest.txt"
+    TOP5_PATH = f"data/{destination}_lowest_5_latest.txt"
 
-def send_chart(chart_path=CHART_PATH):
     sender = os.getenv('EMAIL_SENDER')
     password = os.getenv('EMAIL_PASSWORD')
     receiver = os.getenv('EMAIL_RECEIVER')
@@ -27,10 +27,10 @@ def send_chart(chart_path=CHART_PATH):
     message = MIMEMultipart()
     message['From'] = Header(sender)
     message['To'] = Header(receiver)
-    message['Subject'] = Header(f"marriott shanghai 价格趋势图 - {current_time}")
+    message['Subject'] = Header(f"marriott {destination} 价格趋势图 - {current_time}")
 
     # # 读取分析结果
-    # body_lines = [f"万豪上海酒店价格监控 - {current_time}", "=" * 50]
+    # body_lines = [f"marriott {destination} 酒店价格监控 - {current_time}", "=" * 50]
     body_lines = []
 
     if os.path.exists(LOWEST_HITS_PATH):
@@ -44,9 +44,9 @@ def send_chart(chart_path=CHART_PATH):
     body = "\n\n".join(body_lines)
     message.attach(MIMEText(body, 'plain', 'utf-8'))
 
-    with open(chart_path, 'rb') as f:
+    with open(CHART_PATH, 'rb') as f:
         img = MIMEImage(f.read())
-        img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(chart_path))
+        img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(CHART_PATH))
         message.attach(img)
 
     try:

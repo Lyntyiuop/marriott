@@ -6,6 +6,7 @@ import send_email
 
 
 CONDA_ENV = "crawler"
+DESTINATION = "heilongjiang"
 
 
 def main():
@@ -20,12 +21,12 @@ def main():
     print("=" * 50)
     print("Step 1: 生成价格趋势图")
     print("=" * 50)
-    plot_trends.main()
+    plot_trends.plot_price_trends(DESTINATION)
 
     print("\n" + "=" * 50)
     print("Step 2: 发送邮件")
     print("=" * 50)
-    send_email.send_chart()
+    send_email.send_chart(DESTINATION)
 
     print("\n完成: 图表已生成并发送")
 

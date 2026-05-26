@@ -14,8 +14,8 @@ def _patched_del(self):
 uc.Chrome.__del__ = _patched_del
 
 
-def get_shanghai_hotels(checkin_date="2026-05-23", checkout_date="2026-05-24"):
-    """获取万豪上海酒店列表及所有房型价格"""
+def get_china_hotels(checkin_date="2026-05-23", checkout_date="2026-05-24", destination="中国"):
+    """获取万豪中国酒店列表及所有房型价格"""
 
     # 注入拦截器 — 捕获所有 JSON API 响应（含 URL），便于定位酒店搜索接口
     interceptor_js = """
@@ -65,15 +65,16 @@ def get_shanghai_hotels(checkin_date="2026-05-23", checkout_date="2026-05-24"):
         })
 
         # ========== 1. 加载搜索页面 ==========
+        state_param = 'CN-Shanghai' if destination == "上海市" else ""
         search_url = (
             "https://www.marriott.com.cn/search/findHotels.mi"
             f"?fromDate={checkin_date}"
             f"&toDate={checkout_date}"
-            "&destinationAddress.destination=上海市"
+            f"&destinationAddress.destination={destination}"
             "&roomCount=1"
             "&numAdultsPerRoom=1"
             "&marriottBrands=EB,RZ,LC,XR,WH,JW,BG,MC,SI,DE,WI,MD,BR,DS,TX" # 详见万豪品牌id.md
-            "&states=CN-Shanghai" # 江苏：&states=CN-%E6%B1%9F%E8%8B%8F%E7%9C%81
+            f"&states={state_param}" # 酒店所在省
         )
 
         print("正在加载搜索页面...")
@@ -103,25 +104,31 @@ def get_shanghai_hotels(checkin_date="2026-05-23", checkout_date="2026-05-24"):
                 break
 
         # ========== 3. 点击搜索按钮 ==========
-        clicked = driver.execute_script("""
-            const searchTexts = '更新搜索';
-            const candidates = document.querySelectorAll(
-                'button, a, [role="button"], .btn'
-            );
-            for (const el of candidates) {
-                if (!el.offsetParent) continue;
-                const text = (el.textContent || '').trim();
-                if (text === searchTexts || text.startsWith(searchTexts)) {
-                    el.click();
-                    return true;
+        count = 0
+        while True:
+            clicked = driver.execute_script("""
+                const searchTexts = '更新搜索';
+                const candidates = document.querySelectorAll(
+                    'button, a, [role="button"], .btn'
+                );
+                for (const el of candidates) {
+                    if (!el.offsetParent) continue;
+                    const text = (el.textContent || '').trim();
+                    if (text === searchTexts || text.startsWith(searchTexts)) {
+                        el.click();
+                        return true;
+                    }
                 }
-            }
-            return false;
-        """)
-        if clicked:
-            print("  已点击搜索按钮")
-        else:
-            raise Exception("❌ 未找到【更新搜索】按钮，程序终止运行")
+                return false;
+            """)
+            if clicked:
+                print("  已点击搜索按钮")
+                break
+            else:
+                count += 1
+                time.sleep(1)
+                if count >= 10:
+                    raise Exception("❌ 未找到【更新搜索】按钮，程序终止运行")
 
         # ========== 4. 等待 API 响应返回 ==========
         print("等待搜索结果...")
@@ -167,7 +174,7 @@ def get_shanghai_hotels(checkin_date="2026-05-23", checkout_date="2026-05-24"):
                 return {"hotels": result}
             return result
 
-        raise RuntimeError("超时20s未找到酒店数据，请检查 API 结构是否变化，或增加等待时间")
+        raise RuntimeError("超时未找到酒店数据，请检查 API 结构是否变化，或增加等待时间")
 
     finally:
         try:
@@ -235,29 +242,72 @@ def parse_all_room_types(api_response):
     return hotels_data
 
 
+PROVINCES = [
+    ("上海市", "shanghai"),
+    ("北京市", "beijing"),
+    ("天津市", "tianjin"),
+    ("重庆市", "chongqing"),
+    ("河北省", "hebei"),
+    ("山西省", "shanxi"),
+    ("内蒙古自治区", "neimenggu"),
+    ("辽宁省", "liaoning"),
+    ("吉林省", "jilin"),
+    ("黑龙江省", "heilongjiang"),
+    ("江苏省", "jiangsu"),
+    ("浙江省", "zhejiang"),
+    ("安徽省", "anhui"),
+    ("福建省", "fujian"),
+    ("江西省", "jiangxi"),
+    ("山东省", "shandong"),
+    ("河南省", "henan"),
+    ("湖北省", "hubei"),
+    ("湖南省", "hunan"),
+    ("广东省", "guangdong"),
+    ("广西壮族自治区", "guangxi"),
+    ("海南省", "hainan"),
+    ("四川省", "sichuan"),
+    # ("贵州省", "guizhou"),
+    ("云南省", "yunnan"),
+    ("西藏自治区", "xizang"),
+    ("陕西省", "shaanxi"),
+    ("甘肃省", "gansu"),
+    # ("青海省", "qinghai"),
+    ("宁夏回族自治区", "ningxia"),
+    ("新疆维吾尔自治区", "xinjiang"),
+    ("香港特别行政区", "hongkong"),
+    ("澳门特别行政区", "macau"),
+    ("台湾省", "taiwan"),
+]
+
 if __name__ == "__main__":
     from datetime import date, timedelta, datetime
 
     today = date.today()
     checkin = today.isoformat()
     checkout = (today + timedelta(days=1)).isoformat()
-    output_path = "data/marriott_shanghai_hotels.json"
-
     print(f"记录时间：{datetime.now().isoformat()}")
-    print("正在获取万豪上海各酒店最低价...")
+    print(f"入住日期：{checkin} → {checkout}")
 
-    raw_data = get_shanghai_hotels(checkin, checkout)
-    hotels_with_rooms = parse_all_room_types(raw_data)
+    for destination, destination_en in PROVINCES:
+        output_path = f"data/marriott_{destination_en}_hotels.json"
+        print(f"\n{'='*50}")
+        print(f"正在获取万豪{destination}各酒店最低价...")
 
-    record = {
-        "record_time": datetime.now().isoformat(),
-        "checkin_date": checkin,
-        "checkout_date": checkout,
-        "destination": "上海市",
-        "hotels": hotels_with_rooms,
-    }
+        try:
+            raw_data = get_china_hotels(checkin, checkout, destination)
+            hotels_with_rooms = parse_all_room_types(raw_data)
 
-    with open(output_path, "a", encoding="utf-8") as f:
-        json.dump(record, f, ensure_ascii=False, indent=2)
-        f.write(",\n")
-    print(f"已保存到 {output_path}")
+            record = {
+                "record_time": datetime.now().isoformat(),
+                "checkin_date": checkin,
+                "checkout_date": checkout,
+                "destination": destination,
+                "hotels": hotels_with_rooms,
+            }
+
+            with open(output_path, "a", encoding="utf-8") as f:
+                json.dump(record, f, ensure_ascii=False, indent=2)
+            print(f"  ✓ {destination}: {len(hotels_with_rooms)} 家酒店，已保存到 {output_path}")
+
+        except Exception as e:
+            print(f"  ✗ {destination}: 获取失败 - {e}")
